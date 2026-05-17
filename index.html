@@ -56,37 +56,71 @@
       </section>
 
       <!-- My list panel -->
-      <section id="panel-list" class="panel" role="tabpanel" hidden>
-        <div class="list-toolbar">
-          <input type="search" id="filter-input" class="search-form__input search-form__input--compact" placeholder="Lọc trong danh sách..." />
-          <select id="sort-select" class="select" aria-label="Sắp xếp">
-            <option value="added-desc">Mới thêm nhất</option>
-            <option value="rating-desc">Điểm cao nhất</option>
-            <option value="rating-asc">Điểm thấp nhất</option>
-            <option value="title-asc">Tên A–Z</option>
-          </select>
-          <select id="status-filter" class="select" aria-label="Lọc trạng thái">
-            <option value="all">Tất cả trạng thái</option>
-            <option value="want">Muốn xem</option>
-            <option value="watching">Đang xem</option>
-            <option value="watched">Đã xem</option>
-          </select>
+      <section id="panel-list" class="panel my-list" role="tabpanel" hidden>
+        <header class="my-list__intro">
+          <div>
+            <h2 class="my-list__heading">Bộ sưu tập của bạn</h2>
+            <p class="my-list__sub" id="list-subtitle">Chưa có phim nào</p>
+          </div>
+        </header>
+
+        <div class="my-list__stats" id="list-stats" hidden>
+          <div class="stat">
+            <span class="stat__value" id="stat-total">0</span>
+            <span class="stat__label">Phim</span>
+          </div>
+          <div class="stat">
+            <span class="stat__value" id="stat-avg">—</span>
+            <span class="stat__label">Điểm TB</span>
+          </div>
+          <div class="stat">
+            <span class="stat__value" id="stat-watched">0</span>
+            <span class="stat__label">Đã xem</span>
+          </div>
         </div>
-        <div class="list-actions">
-          <button type="button" class="btn btn--ghost btn--sm" id="btn-export">Xuất JSON</button>
-          <label class="btn btn--ghost btn--sm btn--file">
-            Nhập JSON
-            <input type="file" id="import-file" accept=".json,application/json" hidden />
-          </label>
+
+        <div class="my-list__controls" id="list-controls" hidden>
+          <div class="my-list__search">
+            <svg class="my-list__search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input type="search" id="filter-input" class="my-list__search-input" placeholder="Tìm trong danh sách..." autocomplete="off" />
+          </div>
+
+          <div class="chips" role="group" aria-label="Lọc theo trạng thái">
+            <button type="button" class="chip chip--active" data-status="all">Tất cả</button>
+            <button type="button" class="chip" data-status="want">Muốn xem</button>
+            <button type="button" class="chip" data-status="watching">Đang xem</button>
+            <button type="button" class="chip" data-status="watched">Đã xem</button>
+          </div>
+
+          <div class="my-list__bar">
+            <span class="my-list__result" id="list-filter-count"></span>
+            <select id="sort-select" class="select select--minimal" aria-label="Sắp xếp">
+              <option value="added-desc">Mới thêm</option>
+              <option value="rating-desc">Điểm cao → thấp</option>
+              <option value="rating-asc">Điểm thấp → cao</option>
+              <option value="title-asc">Tên A–Z</option>
+            </select>
+          </div>
         </div>
-        <div id="list-status" class="status" hidden></div>
-        <div id="list-empty" class="empty" hidden>
-          <span class="empty__icon" aria-hidden="true">📽️</span>
-          <p class="empty__title">Chưa có phim nào</p>
-          <p class="empty__text">Tìm phim và thêm vào danh sách để bắt đầu.</p>
-          <button type="button" class="btn btn--primary" data-goto="search">Tìm phim ngay</button>
+
+        <div id="list-empty" class="empty empty--hero" hidden>
+          <div class="empty__visual" aria-hidden="true">
+            <span class="empty__ring"></span>
+            <span class="empty__emoji">🎬</span>
+          </div>
+          <p class="empty__title">Danh sách trống</p>
+          <p class="empty__text">Tìm phim yêu thích, chấm điểm và lưu lại — xem offline mọi lúc.</p>
+          <button type="button" class="btn btn--primary" data-goto="search">Khám phá phim</button>
         </div>
-        <div id="list-results" class="grid"></div>
+
+        <div id="list-no-results" class="empty empty--inline" hidden>
+          <p class="empty__title">Không tìm thấy</p>
+          <p class="empty__text">Thử từ khóa khác hoặc đổi bộ lọc trạng thái.</p>
+        </div>
+
+        <div id="list-results" class="my-list__items"></div>
       </section>
     </main>
   </div>

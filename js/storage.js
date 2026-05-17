@@ -54,29 +54,4 @@ const Storage = {
   isInList(id) {
     return this.getMovies().some((m) => m.id === id);
   },
-
-  exportData() {
-    return {
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      movies: this.getMovies(),
-    };
-  },
-
-  importData(data, merge = false) {
-    if (!data || !Array.isArray(data.movies)) {
-      throw new Error("File JSON không hợp lệ.");
-    }
-    if (merge) {
-      const existing = this.getMovies();
-      const byId = new Map(existing.map((m) => [m.id, m]));
-      for (const m of data.movies) {
-        byId.set(m.id, { ...byId.get(m.id), ...m });
-      }
-      this.saveMovies([...byId.values()]);
-    } else {
-      this.saveMovies(data.movies);
-    }
-    return data.movies.length;
-  },
 };

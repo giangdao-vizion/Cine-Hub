@@ -20,14 +20,19 @@
     searchStatus: $("#search-status"),
     searchResults: $("#search-results"),
     listCount: $("#list-count"),
+    listSubtitle: $("#list-subtitle"),
+    listStats: $("#list-stats"),
+    listControls: $("#list-controls"),
+    statTotal: $("#stat-total"),
+    statAvg: $("#stat-avg"),
+    statWatched: $("#stat-watched"),
     filterInput: $("#filter-input"),
     sortSelect: $("#sort-select"),
-    statusFilter: $("#status-filter"),
-    listStatus: $("#list-status"),
+    statusChips: document.querySelectorAll(".chip[data-status]"),
+    listFilterCount: $("#list-filter-count"),
     listEmpty: $("#list-empty"),
+    listNoResults: $("#list-no-results"),
     listResults: $("#list-results"),
-    btnExport: $("#btn-export"),
-    importFile: $("#import-file"),
     btnSettings: $("#btn-settings"),
     movieModal: $("#movie-modal"),
     movieForm: $("#movie-form"),
@@ -120,23 +125,79 @@
     return card;
   }
 
-  function renderListCard(movie) {
-    const card = document.createElement("article");
-    card.className = "card";
-    const statusClass = `card__status--${movie.status || "want"}`;
-    card.innerHTML = `
-      <div class="card__poster-wrap">
-        ${posterMarkup(movie.poster, movie.title)}
-        <span class="card__badge">${movie.myRating ?? "—"}/10</span>
-        <span class="card__status ${statusClass}">${STATUS_LABELS[movie.status] || STATUS_LABELS.want}</span>
-      </div>
-      <div class="card__body">
-        <h3 class="card__title">${escapeHtml(movie.title)}</h3>
-        <p class="card__meta">${movie.year || "—"}</p>
+  function listPosterMarkup(poster, title) {
+    if (poster) {
+      return `<img class="list-item__poster" src="${escapeHtml(poster)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=\\'list-item__poster list-item__poster--placeholder\\'>${PLACEHOLDER_POSTER}</div>'" />`;
+    }
+    return `<div class="list-item__poster list-item__poster--placeholder">${PLACEHOLDER_POSTER}</div>`;
+  }
+
+  function scoreRingHtml(rating) {
+    const r = 20;
+    const circ = 2 * Math.PI * r;
+    const offset = circ - (rating / 10) * circ;
+    return `
+      <div class="list-item__score" aria-label="Điểm ${rating} trên 10">
+        <svg class="list-item__score-ring" viewBox="0 0 48 48" aria-hidden="true">
+          <circle class="list-item__score-bg" cx="24" cy="24" r="${r}" />
+          <circle class="list-item__score-fill" cx="24" cy="24" r="${r}"
+            stroke-dasharray="${circ.toFixed(2)}"
+            stroke-dashoffset="${offset.toFixed(2)}" />
+        </svg>
+        <span class="list-item__score-num">${rating}</span>
       </div>
     `;
-    card.addEventListener("click", () => openEditModal(movie));
-    return card;
+  }
+
+  function renderListItem(movie) {
+    const status = movie.status || "want";
+    const rating = movie.myRating ?? 7;
+    const note = movie.note?.trim() || "";
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "list-item";
+    btn.innerHTML = `
+      ${listPosterMarkup(movie.poster, movie.title)}
+      <div class="list-item__main">
+        <h3 class="list-item__title">${escapeHtml(movie.title)}</h3>
+        <div class="list-item__meta">
+          ${movie.year ? `<span class="list-item__year">${escapeHtml(String(movie.year))}</span>` : ""}
+          <span class="list-item__badge list-item__badge--${status}">${STATUS_LABELS[status]}</span>
+        </div>
+      </div>
+      ${scoreRingHtml(rating)}
+      ${note ? `<p class="list-item__note">${escapeHtml(note)}</p>` : ""}
+      <svg class="list-item__chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="m9 18 6-6-6-6"/>
+      </svg>
+    `;
+    btn.addEventListener("click", () => openEditModal(movie));
+    return btn;
+  }
+
+  function getActiveStatus() {
+    const active = document.querySelector(".chip.chip--active");
+    return active?.dataset.status || "all";
+  }
+
+  function updateListStats(movies) {
+    const total = movies.length;
+    els.statTotal.textContent = total;
+    els.statWatched.textContent = movies.filter((m) => m.status === "watched").length;
+
+    const rated = movies.filter((m) => m.myRating != null);
+    els.statAvg.textContent = rated.length
+      ? (rated.reduce((s, m) => s + m.myRating, 0) / rated.length).toFixed(1)
+      : "—";
+
+    els.listSubtitle.textContent =
+      total === 0
+        ? "Chưa có phim nào"
+        : `${total} phim trong bộ sưu tập`;
+
+    els.listStats.hidden = total === 0;
+    els.listControls.hidden = total === 0;
   }
 
   function sortMovies(movies, sortBy) {
@@ -158,7 +219,7 @@
 
   function filterMovies(movies) {
     const q = els.filterInput.value.trim().toLowerCase();
-    const status = els.statusFilter.value;
+    const status = getActiveStatus();
     return movies.filter((m) => {
       if (status !== "all" && (m.status || "want") !== status) return false;
       if (!q) return true;
@@ -170,27 +231,34 @@
   function renderList() {
     updateListCount();
     const all = Storage.getMovies();
-    const filtered = filterMovies(
-      sortMovies(all, els.sortSelect.value)
-    );
+    updateListStats(all);
+
+    const filtered = filterMovies(sortMovies(all, els.sortSelect.value));
 
     els.listResults.innerHTML = "";
-    showStatus(els.listStatus, "");
+    els.listEmpty.hidden = true;
+    els.listNoResults.hidden = true;
 
     if (all.length === 0) {
       els.listEmpty.hidden = false;
+      els.listFilterCount.textContent = "";
       return;
     }
-
-    els.listEmpty.hidden = true;
 
     if (filtered.length === 0) {
-      showStatus(els.listStatus, "Không có phim khớp bộ lọc.", "info");
+      els.listNoResults.hidden = false;
+      els.listFilterCount.textContent = "0 phim";
       return;
     }
 
+    const label =
+      filtered.length === all.length
+        ? `${filtered.length} phim`
+        : `${filtered.length} / ${all.length} phim`;
+    els.listFilterCount.textContent = label;
+
     const frag = document.createDocumentFragment();
-    filtered.forEach((m) => frag.appendChild(renderListCard(m)));
+    filtered.forEach((m) => frag.appendChild(renderListItem(m)));
     els.listResults.appendChild(frag);
   }
 
@@ -290,8 +358,6 @@
       if (query) handleSearch(new Event("submit"));
     }
 
-    showStatus(els.listStatus, "Đã lưu phim.", "success");
-    setTimeout(() => showStatus(els.listStatus, ""), 2500);
   }
 
   function handleModalDelete() {
@@ -301,44 +367,6 @@
     updateListCount();
     closeMovieModal();
     renderList();
-  }
-
-  function handleExport() {
-    const data = Storage.exportData();
-    const blob = new Blob([JSON.stringify(data, null, 2)], {
-      type: "application/json",
-    });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `cinehub-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-    showStatus(els.listStatus, "Đã xuất file JSON.", "success");
-    setTimeout(() => showStatus(els.listStatus, ""), 2500);
-  }
-
-  function handleImport(e) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const data = JSON.parse(reader.result);
-        const merge = confirm(
-          "Chọn OK để gộp với danh sách hiện tại.\nChọn Hủy để thay thế hoàn toàn."
-        );
-        const n = Storage.importData(data, merge);
-        updateListCount();
-        renderList();
-        showStatus(els.listStatus, `Đã nhập ${n} phim.`, "success");
-        setTimeout(() => showStatus(els.listStatus, ""), 3000);
-      } catch (err) {
-        showStatus(els.listStatus, err.message || "Không đọc được file.", "error");
-      }
-    };
-    reader.readAsText(file);
   }
 
   function openSettings() {
@@ -377,9 +405,12 @@
     els.searchForm.addEventListener("submit", handleSearch);
     els.filterInput.addEventListener("input", renderList);
     els.sortSelect.addEventListener("change", renderList);
-    els.statusFilter.addEventListener("change", renderList);
-    els.btnExport.addEventListener("click", handleExport);
-    els.importFile.addEventListener("change", handleImport);
+    els.statusChips.forEach((chip) => {
+      chip.addEventListener("click", () => {
+        els.statusChips.forEach((c) => c.classList.toggle("chip--active", c === chip));
+        renderList();
+      });
+    });
 
     els.btnSettings.addEventListener("click", openSettings);
     els.settingsForm.addEventListener("submit", handleSettingsSave);

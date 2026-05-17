@@ -7,8 +7,7 @@ Sổ phim cá nhân — tìm phim trên TMDB, lưu danh sách offline (localStor
 - Tìm phim theo từ khóa (TMDB API, cần mạng)
 - Thêm phim vào danh sách — metadata lưu local, xem offline
 - Điểm 1–10, trạng thái (muốn xem / đang xem / đã xem), ghi chú
-- Xem, sắp xếp, lọc danh sách đã lưu
-- Xuất / nhập JSON (backup)
+- Xem, sắp xếp, lọc danh sách đã lưu (giao diện danh sách tối ưu)
 
 ## Chạy app
 

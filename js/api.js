@@ -25,7 +25,7 @@ const TmdbApi = {
   async _request(path, extraParams = {}) {
     const apiKey = this.getApiKey();
     if (!apiKey) {
-      throw new Error("Chưa có API key. Mở Cài đặt (⚙) để nhập TMDB API key.");
+      throw new Error("Chưa có TMDB_API_KEY_ENCODED hợp lệ trong js/config.js.");
     }
 
     const params = new URLSearchParams({
@@ -43,7 +43,7 @@ const TmdbApi = {
     }
 
     if (res.status === 401) {
-      throw new Error("API key không hợp lệ. Kiểm tra lại trong Cài đặt.");
+      throw new Error("API key không hợp lệ. Kiểm tra TMDB_API_KEY_ENCODED trong js/config.js.");
     }
 
     if (!res.ok) {

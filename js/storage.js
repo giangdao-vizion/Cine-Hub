@@ -1,12 +1,41 @@
 const Storage = {
   getApiKey() {
-    const fromStorage = localStorage.getItem(CONFIG.STORAGE_KEY_API);
-    if (fromStorage) return fromStorage;
     return CONFIG.TMDB_API_KEY || "";
   },
 
-  setApiKey(key) {
-    localStorage.setItem(CONFIG.STORAGE_KEY_API, key.trim());
+  getTrendingCache() {
+    try {
+      const raw = localStorage.getItem(CONFIG.STORAGE_KEY_TRENDING);
+      if (!raw) return null;
+
+      const data = JSON.parse(raw);
+      const apiKey = this.getApiKey();
+      if (!data.cachedAt || data.apiKey !== apiKey || !Array.isArray(data.sections)) {
+        return null;
+      }
+
+      const age = Date.now() - new Date(data.cachedAt).getTime();
+      if (age < 0 || age > CONFIG.TRENDING_CACHE_TTL_MS) return null;
+
+      return data;
+    } catch {
+      return null;
+    }
+  },
+
+  setTrendingCache(sections) {
+    localStorage.setItem(
+      CONFIG.STORAGE_KEY_TRENDING,
+      JSON.stringify({
+        apiKey: this.getApiKey(),
+        cachedAt: new Date().toISOString(),
+        sections,
+      })
+    );
+  },
+
+  clearTrendingCache() {
+    localStorage.removeItem(CONFIG.STORAGE_KEY_TRENDING);
   },
 
   getMovies() {

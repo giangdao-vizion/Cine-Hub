@@ -12,18 +12,9 @@ Sổ phim cá nhân — tìm phim trên TMDB, lưu danh sách offline (localStor
 
 ## Chạy app
 
-1. Lấy **TMDB API key** miễn phí: [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api)
-2. Mở `index.html` trong trình duyệt (hoặc dùng Live Server / `npx serve .`)
-3. Lần đầu mở **Cài đặt** (⚙) và dán API key — key lưu trong localStorage
+1. Mở `index.html` trong trình duyệt (hoặc dùng Live Server / `npx serve .`)
 
-Tùy chọn: điền key sẵn trong `js/config.js`:
-
-```js
-const CONFIG = {
-  TMDB_API_KEY: "your_key_here",
-  // ...
-};
-```
+TMDB API key đã được mã hóa sẵn trong `js/config.js`.
 
 ## Logo & icon
 
@@ -65,4 +56,3 @@ Không cần build hay server backend.
 
 - Chỉ **tìm kiếm** cần internet; danh sách đã lưu đọc từ localStorage.
 - Poster có thể không hiển thị khi offline (URL ảnh từ TMDB).
-- API key trên frontend có thể bị lộ — phù hợp dùng cá nhân / local.

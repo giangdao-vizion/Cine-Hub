@@ -50,7 +50,6 @@
     listEmpty: $("#list-empty"),
     listNoResults: $("#list-no-results"),
     listResults: $("#list-results"),
-    btnSettings: $("#btn-settings"),
     movieModal: $("#movie-modal"),
     movieForm: $("#movie-form"),
     modalTitle: $("#modal-title"),
@@ -65,9 +64,6 @@
     modalDelete: $("#modal-delete"),
     modalClose: $("#modal-close"),
     modalCancel: $("#modal-cancel"),
-    settingsModal: $("#settings-modal"),
-    settingsForm: $("#settings-form"),
-    apiKeyInput: $("#api-key-input"),
   };
 
   function escapeHtml(str) {
@@ -202,9 +198,71 @@
     return block;
   }
 
+  function sectionResultsFromCache(cachedSections) {
+    return cachedSections
+      .map(({ id, movies }) => {
+        const section = TRENDING_SECTIONS.find((s) => s.id === id);
+        return section ? { section, movies } : null;
+      })
+      .filter(Boolean);
+  }
+
+  function renderTrendingResults(results, { fromCache = false } = {}) {
+    els.trendingSections.innerHTML = "";
+    showStatus(els.trendingStatus, "");
+
+    const frag = document.createDocumentFragment();
+    for (const { section, movies } of results) {
+      if (movies.length > 0) {
+        frag.appendChild(renderTrendingSection(section, movies));
+      }
+    }
+
+    if (!frag.childElementCount) {
+      showStatus(els.trendingStatus, "Không có dữ liệu phim nổi bật.", "info");
+      els.trendingSections.hidden = true;
+      trendingLoaded = false;
+      return;
+    }
+
+    els.trendingSections.appendChild(frag);
+    els.trendingSections.hidden = false;
+    trendingLoaded = true;
+
+    if (fromCache) {
+      const cached = Storage.getTrendingCache();
+      if (cached?.cachedAt) {
+        const when = new Date(cached.cachedAt).toLocaleString("vi-VN", {
+          day: "numeric",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        showStatus(
+          els.trendingStatus,
+          `Đã lưu cache — cập nhật lúc ${when} (tự làm mới sau 24 giờ).`,
+          "info"
+        );
+      }
+    }
+  }
+
   async function loadTrending(force = false) {
     if (trendingLoaded && !force) return;
     if (!Storage.getApiKey()) return;
+
+    if (!force) {
+      const cached = Storage.getTrendingCache();
+      if (cached) {
+        renderTrendingResults(sectionResultsFromCache(cached.sections), {
+          fromCache: true,
+        });
+        return;
+      }
+    } else {
+      Storage.clearTrendingCache();
+      trendingLoaded = false;
+    }
 
     els.trendingSections.hidden = true;
     els.trendingSections.innerHTML = "";
@@ -218,25 +276,15 @@
         })
       );
 
-      showStatus(els.trendingStatus, "");
-      const frag = document.createDocumentFragment();
+      Storage.setTrendingCache(
+        results.map(({ section, movies }) => ({ id: section.id, movies }))
+      );
 
-      for (const { section, movies } of results) {
-        if (movies.length > 0) {
-          frag.appendChild(renderTrendingSection(section, movies));
-        }
-      }
-
-      if (!frag.childElementCount) {
-        showStatus(els.trendingStatus, "Không có dữ liệu phim nổi bật.", "info");
-        return;
-      }
-
-      els.trendingSections.appendChild(frag);
-      els.trendingSections.hidden = false;
-      trendingLoaded = true;
+      renderTrendingResults(results);
     } catch (err) {
       showStatus(els.trendingStatus, err.message, "error");
+      els.trendingSections.hidden = true;
+      trendingLoaded = false;
     }
   }
 
@@ -508,34 +556,16 @@
     renderList();
   }
 
-  function openSettings() {
-    els.apiKeyInput.value = Storage.getApiKey();
-    els.settingsModal.showModal();
-  }
-
-  function handleSettingsSave(e) {
-    e.preventDefault();
-    Storage.setApiKey(els.apiKeyInput.value);
-    els.settingsModal.close();
-    trendingLoaded = false;
-    if (!Storage.getApiKey()) {
-      showStatus(
-        els.trendingStatus,
-        "Chưa có API key — tìm kiếm sẽ không hoạt động.",
-        "error"
-      );
-    } else if (els.panelSearch.classList.contains("panel--active")) {
-      showHomeView();
-      loadTrending(true);
-    }
-  }
-
   function init() {
     updateListCount();
     showHomeView();
 
     if (!Storage.getApiKey()) {
-      setTimeout(openSettings, 400);
+      showStatus(
+        els.trendingStatus,
+        "Thiếu API key — mã hóa key vào TMDB_API_KEY_ENCODED (xem README).",
+        "error"
+      );
     } else {
       loadTrending();
     }
@@ -562,12 +592,6 @@
         els.statusChips.forEach((c) => c.classList.toggle("chip--active", c === chip));
         renderList();
       });
-    });
-
-    els.btnSettings.addEventListener("click", openSettings);
-    els.settingsForm.addEventListener("submit", handleSettingsSave);
-    document.querySelectorAll("[data-close-settings]").forEach((btn) => {
-      btn.addEventListener("click", () => els.settingsModal.close());
     });
 
     els.movieForm.addEventListener("submit", handleModalSave);

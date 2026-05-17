@@ -7,7 +7,19 @@
 
   const PLACEHOLDER_POSTER = "🎞️";
 
+  const TRENDING_SECTIONS = [
+    { id: "day", title: "Nổi bật hôm nay", sub: "Xu hướng trong ngày", fetch: () => TmdbApi.getTrending("day") },
+    { id: "week", title: "Nổi bật tuần này", sub: "Xu hướng trong tuần", fetch: () => TmdbApi.getTrending("week") },
+    {
+      id: "month",
+      title: "Nổi bật tháng này",
+      sub: "Phổ biến 30 ngày qua",
+      fetch: () => TmdbApi.getTrendingMonth(),
+    },
+  ];
+
   let modalContext = { mode: "add", movie: null };
+  let trendingLoaded = false;
 
   const $ = (sel) => document.querySelector(sel);
 
@@ -17,6 +29,11 @@
     panelList: $("#panel-list"),
     searchForm: $("#search-form"),
     searchInput: $("#search-input"),
+    homeContent: $("#home-content"),
+    trendingStatus: $("#trending-status"),
+    trendingSections: $("#trending-sections"),
+    searchView: $("#search-view"),
+    searchHint: $("#search-hint"),
     searchStatus: $("#search-status"),
     searchResults: $("#search-results"),
     listCount: $("#list-count"),
@@ -42,6 +59,7 @@
     modalOverview: $("#modal-overview"),
     modalRating: $("#modal-rating"),
     modalRatingValue: $("#modal-rating-value"),
+    modalRatingGroup: $("#modal-rating-group"),
     modalStatus: $("#modal-status"),
     modalNote: $("#modal-note"),
     modalDelete: $("#modal-delete"),
@@ -88,6 +106,10 @@
     els.panelList.classList.toggle("panel--active", tabId === "list");
     els.panelList.hidden = tabId !== "list";
     if (tabId === "list") renderList();
+    if (tabId === "search") {
+      if (!els.searchInput.value.trim()) showHomeView();
+      loadTrending();
+    }
   }
 
   function updateListCount() {
@@ -96,24 +118,8 @@
     els.listCount.hidden = count === 0;
   }
 
-  function renderSearchCard(movie) {
+  function bindSearchCard(card, movie) {
     const inList = Storage.isInList(movie.id);
-    const card = document.createElement("article");
-    card.className = "card";
-    card.innerHTML = `
-      <div class="card__poster-wrap">
-        ${posterMarkup(movie.poster, movie.title)}
-      </div>
-      <div class="card__body">
-        <h3 class="card__title">${escapeHtml(movie.title)}</h3>
-        <p class="card__meta">${movie.year || "—"}</p>
-        <div class="card__actions">
-          <button type="button" class="btn btn--primary btn-add" ${inList ? "disabled" : ""}>
-            ${inList ? "Đã có" : "Thêm"}
-          </button>
-        </div>
-      </div>
-    `;
     card.querySelector(".btn-add")?.addEventListener("click", (e) => {
       e.stopPropagation();
       openAddModal(movie);
@@ -122,7 +128,116 @@
       if (inList) openEditModal(Storage.getMovieById(movie.id));
       else openAddModal(movie);
     });
+  }
+
+  function createSearchCard(movie) {
+    const inList = Storage.isInList(movie.id);
+    const card = document.createElement("article");
+    card.className = "card";
+    card.dataset.movieId = String(movie.id);
+    card.innerHTML = `
+      <div class="card__poster-wrap">
+        ${posterMarkup(movie.poster, movie.title)}
+      </div>
+      <div class="card__body">
+        <h3 class="card__title">${escapeHtml(movie.title)}</h3>
+        <p class="card__meta">${movie.year || "—"}${movie.voteAverage != null ? ` · ★ ${movie.voteAverage.toFixed(1)}` : ""}</p>
+        <div class="card__actions">
+          <button type="button" class="btn btn--primary btn-add" ${inList ? "disabled" : ""}>
+            ${inList ? "Đã có" : "Thêm"}
+          </button>
+        </div>
+      </div>
+    `;
+    bindSearchCard(card, movie);
     return card;
+  }
+
+  function renderSearchCard(movie) {
+    return createSearchCard(movie);
+  }
+
+  function showHomeView() {
+    els.homeContent.hidden = false;
+    els.searchView.hidden = true;
+    els.searchResults.innerHTML = "";
+    showStatus(els.searchStatus, "");
+  }
+
+  function showSearchView(query) {
+    els.homeContent.hidden = true;
+    els.searchView.hidden = false;
+    els.searchHint.textContent = query ? `Kết quả cho “${query}”` : "";
+  }
+
+  function refreshTrendingCardStates() {
+    document.querySelectorAll(".card[data-movie-id]").forEach((card) => {
+      const id = Number(card.dataset.movieId);
+      const inList = Storage.isInList(id);
+      const btn = card.querySelector(".btn-add");
+      if (btn) {
+        btn.disabled = inList;
+        btn.textContent = inList ? "Đã có" : "Thêm";
+      }
+    });
+  }
+
+  function renderTrendingSection(section, movies) {
+    const block = document.createElement("section");
+    block.className = "trending-section";
+    block.dataset.section = section.id;
+
+    const scroll = document.createElement("div");
+    scroll.className = "trending-section__scroll";
+
+    movies.forEach((m) => scroll.appendChild(createSearchCard(m)));
+
+    block.innerHTML = `
+      <div class="trending-section__head">
+        <h3 class="trending-section__title">${escapeHtml(section.title)}</h3>
+        <p class="trending-section__sub">${escapeHtml(section.sub)}</p>
+      </div>
+    `;
+    block.appendChild(scroll);
+    return block;
+  }
+
+  async function loadTrending(force = false) {
+    if (trendingLoaded && !force) return;
+    if (!Storage.getApiKey()) return;
+
+    els.trendingSections.hidden = true;
+    els.trendingSections.innerHTML = "";
+    showStatus(els.trendingStatus, "Đang tải phim nổi bật...", "info");
+
+    try {
+      const results = await Promise.all(
+        TRENDING_SECTIONS.map(async (section) => {
+          const movies = await section.fetch();
+          return { section, movies };
+        })
+      );
+
+      showStatus(els.trendingStatus, "");
+      const frag = document.createDocumentFragment();
+
+      for (const { section, movies } of results) {
+        if (movies.length > 0) {
+          frag.appendChild(renderTrendingSection(section, movies));
+        }
+      }
+
+      if (!frag.childElementCount) {
+        showStatus(els.trendingStatus, "Không có dữ liệu phim nổi bật.", "info");
+        return;
+      }
+
+      els.trendingSections.appendChild(frag);
+      els.trendingSections.hidden = false;
+      trendingLoaded = true;
+    } catch (err) {
+      showStatus(els.trendingStatus, err.message, "error");
+    }
   }
 
   function listPosterMarkup(poster, title) {
@@ -153,22 +268,31 @@
     const status = movie.status || "want";
     const rating = movie.myRating ?? 7;
     const note = movie.note?.trim() || "";
+    const tmdb =
+      movie.voteAverage != null
+        ? `<span class="list-item__tmdb">TMDB ${movie.voteAverage.toFixed(1)}</span>`
+        : "";
 
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "list-item";
     btn.innerHTML = `
-      ${listPosterMarkup(movie.poster, movie.title)}
-      <div class="list-item__main">
-        <h3 class="list-item__title">${escapeHtml(movie.title)}</h3>
+      <div class="list-item__media">
+        ${listPosterMarkup(movie.poster, movie.title)}
+      </div>
+      <div class="list-item__body">
+        <div class="list-item__head">
+          <h3 class="list-item__title">${escapeHtml(movie.title)}</h3>
+          ${scoreRingHtml(rating)}
+        </div>
         <div class="list-item__meta">
           ${movie.year ? `<span class="list-item__year">${escapeHtml(String(movie.year))}</span>` : ""}
           <span class="list-item__badge list-item__badge--${status}">${STATUS_LABELS[status]}</span>
+          ${tmdb}
         </div>
+        ${note ? `<p class="list-item__note">${escapeHtml(note)}</p>` : `<p class="list-item__note list-item__note--empty">Chạm để thêm ghi chú hoặc chỉnh điểm</p>`}
       </div>
-      ${scoreRingHtml(rating)}
-      ${note ? `<p class="list-item__note">${escapeHtml(note)}</p>` : ""}
-      <svg class="list-item__chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <svg class="list-item__chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
         <path d="m9 18 6-6-6-6"/>
       </svg>
     `;
@@ -265,8 +389,13 @@
   async function handleSearch(e) {
     e.preventDefault();
     const query = els.searchInput.value.trim();
-    if (!query) return;
+    if (!query) {
+      showHomeView();
+      loadTrending();
+      return;
+    }
 
+    showSearchView(query);
     els.searchResults.innerHTML = "";
     showStatus(els.searchStatus, "Đang tìm...", "info");
 
@@ -287,6 +416,17 @@
     }
   }
 
+  function setModalRating(value) {
+    const rating = Math.min(10, Math.max(1, Number(value) || 7));
+    els.modalRating.value = String(rating);
+    els.modalRatingValue.textContent = rating;
+    els.modalRatingGroup?.querySelectorAll(".rating-picks__btn").forEach((btn) => {
+      const active = Number(btn.dataset.rating) === rating;
+      btn.classList.toggle("rating-picks__btn--active", active);
+      btn.setAttribute("aria-checked", active);
+    });
+  }
+
   function fillModal(movie) {
     els.modalTitle.textContent = movie.title;
     els.modalMeta.textContent = [movie.year, movie.voteAverage != null ? `TMDB: ${movie.voteAverage.toFixed(1)}` : ""]
@@ -300,8 +440,7 @@
     } else {
       els.modalPoster.hidden = true;
     }
-    els.modalRating.value = movie.myRating ?? 7;
-    els.modalRatingValue.textContent = els.modalRating.value;
+    setModalRating(movie.myRating ?? 7);
     els.modalStatus.value = movie.status || "want";
     els.modalNote.value = movie.note || "";
   }
@@ -354,10 +493,10 @@
     if (els.panelList.classList.contains("panel--active")) {
       renderList();
     } else {
+      refreshTrendingCardStates();
       const query = els.searchInput.value.trim();
       if (query) handleSearch(new Event("submit"));
     }
-
   }
 
   function handleModalDelete() {
@@ -378,20 +517,27 @@
     e.preventDefault();
     Storage.setApiKey(els.apiKeyInput.value);
     els.settingsModal.close();
+    trendingLoaded = false;
     if (!Storage.getApiKey()) {
       showStatus(
-        els.searchStatus,
+        els.trendingStatus,
         "Chưa có API key — tìm kiếm sẽ không hoạt động.",
         "error"
       );
+    } else if (els.panelSearch.classList.contains("panel--active")) {
+      showHomeView();
+      loadTrending(true);
     }
   }
 
   function init() {
     updateListCount();
+    showHomeView();
 
     if (!Storage.getApiKey()) {
       setTimeout(openSettings, 400);
+    } else {
+      loadTrending();
     }
 
     els.tabs.forEach((btn) => {
@@ -403,6 +549,12 @@
     });
 
     els.searchForm.addEventListener("submit", handleSearch);
+    els.searchInput.addEventListener("search", () => {
+      if (!els.searchInput.value.trim()) {
+        showHomeView();
+        loadTrending();
+      }
+    });
     els.filterInput.addEventListener("input", renderList);
     els.sortSelect.addEventListener("change", renderList);
     els.statusChips.forEach((chip) => {
@@ -422,8 +574,11 @@
     els.modalDelete.addEventListener("click", handleModalDelete);
     els.modalClose.addEventListener("click", closeMovieModal);
     els.modalCancel.addEventListener("click", closeMovieModal);
-    els.modalRating.addEventListener("input", () => {
-      els.modalRatingValue.textContent = els.modalRating.value;
+    els.modalRatingGroup?.addEventListener("click", (e) => {
+      const btn = e.target.closest(".rating-picks__btn");
+      if (!btn) return;
+      e.preventDefault();
+      setModalRating(btn.dataset.rating);
     });
 
     els.movieModal.addEventListener("click", (e) => {

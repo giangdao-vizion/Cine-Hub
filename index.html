@@ -35,7 +35,7 @@
         </picture>
       </div>
       <nav class="tabs" role="tablist" aria-label="Điều hướng chính">
-        <button type="button" class="tabs__btn tabs__btn--active" data-tab="search" role="tab" aria-selected="true" aria-controls="panel-search">Tìm phim</button>
+        <button type="button" class="tabs__btn tabs__btn--active" data-tab="search" role="tab" aria-selected="true" aria-controls="panel-search">Trang chủ</button>
         <button type="button" class="tabs__btn" data-tab="list" role="tab" aria-selected="false" aria-controls="panel-list">
           Danh sách của tôi
           <span class="tabs__badge" id="list-count" hidden>0</span>
@@ -62,14 +62,19 @@
               class="search-form__input"
               placeholder="Tìm phim theo tên..."
               autocomplete="off"
-              required
             />
             <button type="submit" class="btn btn--primary">Tìm</button>
           </div>
         </form>
-        <p class="hint" id="search-hint">Nhập tên phim và nhấn Tìm. Cần kết nối mạng và API key TMDB.</p>
-        <div id="search-status" class="status" hidden></div>
-        <div id="search-results" class="grid"></div>
+        <div id="home-content" class="home">
+          <div id="trending-status" class="status" hidden></div>
+          <div id="trending-sections" class="home__sections" hidden></div>
+        </div>
+        <div id="search-view" class="search-view" hidden>
+          <p class="hint" id="search-hint"></p>
+          <div id="search-status" class="status" hidden></div>
+          <div id="search-results" class="grid"></div>
+        </div>
       </section>
 
       <!-- My list panel -->
@@ -158,12 +163,24 @@
         <div class="modal__info">
           <p id="modal-meta" class="modal__meta"></p>
           <p id="modal-overview" class="modal__overview"></p>
-          <div class="field">
-            <label for="modal-rating">Điểm của tôi (1–10)</label>
-            <div class="rating-input">
-              <input type="range" id="modal-rating" min="1" max="10" step="1" value="7" />
-              <span id="modal-rating-value" class="rating-input__value">7</span>
+          <div class="field field--rating">
+            <div class="rating-picks__header">
+              <span class="field__label">Điểm của tôi (1–10)</span>
+              <span id="modal-rating-value" class="rating-picks__selected" aria-live="polite">7</span>
             </div>
+            <div class="rating-picks" id="modal-rating-group" role="radiogroup" aria-label="Chọn điểm từ 1 đến 10">
+              <button type="button" class="rating-picks__btn" data-rating="1" role="radio" aria-checked="false">1</button>
+              <button type="button" class="rating-picks__btn" data-rating="2" role="radio" aria-checked="false">2</button>
+              <button type="button" class="rating-picks__btn" data-rating="3" role="radio" aria-checked="false">3</button>
+              <button type="button" class="rating-picks__btn" data-rating="4" role="radio" aria-checked="false">4</button>
+              <button type="button" class="rating-picks__btn" data-rating="5" role="radio" aria-checked="false">5</button>
+              <button type="button" class="rating-picks__btn" data-rating="6" role="radio" aria-checked="false">6</button>
+              <button type="button" class="rating-picks__btn" data-rating="7" role="radio" aria-checked="true">7</button>
+              <button type="button" class="rating-picks__btn" data-rating="8" role="radio" aria-checked="false">8</button>
+              <button type="button" class="rating-picks__btn" data-rating="9" role="radio" aria-checked="false">9</button>
+              <button type="button" class="rating-picks__btn" data-rating="10" role="radio" aria-checked="false">10</button>
+            </div>
+            <input type="hidden" id="modal-rating" value="7" />
           </div>
           <div class="field">
             <label for="modal-status">Trạng thái</label>

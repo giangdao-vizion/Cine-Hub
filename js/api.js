@@ -22,7 +22,7 @@ const TmdbApi = {
     };
   },
 
-  async searchMovies(query) {
+  async _request(path, extraParams = {}) {
     const apiKey = this.getApiKey();
     if (!apiKey) {
       throw new Error("Chưa có API key. Mở Cài đặt (⚙) để nhập TMDB API key.");
@@ -30,12 +30,11 @@ const TmdbApi = {
 
     const params = new URLSearchParams({
       api_key: apiKey,
-      query: query.trim(),
       language: "vi-VN",
-      include_adult: "false",
+      ...extraParams,
     });
 
-    const url = `${CONFIG.TMDB_BASE_URL}/search/movie?${params}`;
+    const url = `${CONFIG.TMDB_BASE_URL}${path}?${params}`;
     let res;
     try {
       res = await fetch(url);
@@ -51,7 +50,42 @@ const TmdbApi = {
       throw new Error(`Lỗi TMDB (${res.status}). Thử lại sau.`);
     }
 
-    const data = await res.json();
-    return (data.results || []).map((item) => this.snapshotFromResult(item));
+    return res.json();
+  },
+
+  _mapResults(data, limit = 12) {
+    return (data.results || []).slice(0, limit).map((item) => this.snapshotFromResult(item));
+  },
+
+  /** TMDB: /trending/movie/day | week */
+  async getTrending(timeWindow) {
+    const data = await this._request(`/trending/movie/${timeWindow}`);
+    return this._mapResults(data);
+  },
+
+  /**
+   * TMDB không có trending/month — dùng discover phổ biến 30 ngày qua.
+   */
+  async getTrendingMonth() {
+    const to = new Date();
+    const from = new Date(to);
+    from.setDate(from.getDate() - 30);
+
+    const data = await this._request("/discover/movie", {
+      sort_by: "popularity.desc",
+      include_adult: "false",
+      "primary_release_date.gte": from.toISOString().slice(0, 10),
+      "primary_release_date.lte": to.toISOString().slice(0, 10),
+      page: "1",
+    });
+    return this._mapResults(data);
+  },
+
+  async searchMovies(query) {
+    const data = await this._request("/search/movie", {
+      query: query.trim(),
+      include_adult: "false",
+    });
+    return this._mapResults(data, 20);
   },
 };

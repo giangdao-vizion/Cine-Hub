@@ -4,6 +4,7 @@ Sổ phim cá nhân — tìm phim trên TMDB, lưu danh sách offline (localStor
 
 ## Tính năng
 
+- Trang chủ: phim nổi bật hôm nay / tuần / tháng (TMDB)
 - Tìm phim theo từ khóa (TMDB API, cần mạng)
 - Thêm phim vào danh sách — metadata lưu local, xem offline
 - Điểm 1–10, trạng thái (muốn xem / đang xem / đã xem), ghi chú

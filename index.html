@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Cine-Hub — Sổ phim cá nhân, tìm phim và đánh giá theo sở thích" />
+  <title>Cine-Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="brand">
+        <span class="brand__icon" aria-hidden="true">🎬</span>
+        <h1 class="brand__title">Cine-Hub</h1>
+      </div>
+      <nav class="tabs" role="tablist" aria-label="Điều hướng chính">
+        <button type="button" class="tabs__btn tabs__btn--active" data-tab="search" role="tab" aria-selected="true" aria-controls="panel-search">Tìm phim</button>
+        <button type="button" class="tabs__btn" data-tab="list" role="tab" aria-selected="false" aria-controls="panel-list">
+          Danh sách của tôi
+          <span class="tabs__badge" id="list-count" hidden>0</span>
+        </button>
+      </nav>
+      <button type="button" class="btn btn--ghost btn--icon" id="btn-settings" aria-label="Cài đặt" title="Cài đặt">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+      </button>
+    </header>
+
+    <main class="main">
+      <!-- Search panel -->
+      <section id="panel-search" class="panel panel--active" role="tabpanel" aria-labelledby="tab-search">
+        <form class="search-form" id="search-form">
+          <div class="search-form__wrap">
+            <svg class="search-form__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input
+              type="search"
+              id="search-input"
+              class="search-form__input"
+              placeholder="Tìm phim theo tên..."
+              autocomplete="off"
+              required
+            />
+            <button type="submit" class="btn btn--primary">Tìm</button>
+          </div>
+        </form>
+        <p class="hint" id="search-hint">Nhập tên phim và nhấn Tìm. Cần kết nối mạng và API key TMDB.</p>
+        <div id="search-status" class="status" hidden></div>
+        <div id="search-results" class="grid"></div>
+      </section>
+
+      <!-- My list panel -->
+      <section id="panel-list" class="panel" role="tabpanel" hidden>
+        <div class="list-toolbar">
+          <input type="search" id="filter-input" class="search-form__input search-form__input--compact" placeholder="Lọc trong danh sách..." />
+          <select id="sort-select" class="select" aria-label="Sắp xếp">
+            <option value="added-desc">Mới thêm nhất</option>
+            <option value="rating-desc">Điểm cao nhất</option>
+            <option value="rating-asc">Điểm thấp nhất</option>
+            <option value="title-asc">Tên A–Z</option>
+          </select>
+          <select id="status-filter" class="select" aria-label="Lọc trạng thái">
+            <option value="all">Tất cả trạng thái</option>
+            <option value="want">Muốn xem</option>
+            <option value="watching">Đang xem</option>
+            <option value="watched">Đã xem</option>
+          </select>
+        </div>
+        <div class="list-actions">
+          <button type="button" class="btn btn--ghost btn--sm" id="btn-export">Xuất JSON</button>
+          <label class="btn btn--ghost btn--sm btn--file">
+            Nhập JSON
+            <input type="file" id="import-file" accept=".json,application/json" hidden />
+          </label>
+        </div>
+        <div id="list-status" class="status" hidden></div>
+        <div id="list-empty" class="empty" hidden>
+          <span class="empty__icon" aria-hidden="true">📽️</span>
+          <p class="empty__title">Chưa có phim nào</p>
+          <p class="empty__text">Tìm phim và thêm vào danh sách để bắt đầu.</p>
+          <button type="button" class="btn btn--primary" data-goto="search">Tìm phim ngay</button>
+        </div>
+        <div id="list-results" class="grid"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Movie detail / edit modal -->
+  <dialog class="modal" id="movie-modal">
+    <form class="modal__form" id="movie-form" method="dialog">
+      <div class="modal__header">
+        <h2 class="modal__title" id="modal-title">Chi tiết phim</h2>
+        <button type="button" class="btn btn--ghost btn--icon modal__close" id="modal-close" aria-label="Đóng">&times;</button>
+      </div>
+      <div class="modal__body">
+        <div class="modal__poster-wrap">
+          <img id="modal-poster" class="modal__poster" src="" alt="" />
+        </div>
+        <div class="modal__info">
+          <p id="modal-meta" class="modal__meta"></p>
+          <p id="modal-overview" class="modal__overview"></p>
+          <div class="field">
+            <label for="modal-rating">Điểm của tôi (1–10)</label>
+            <div class="rating-input">
+              <input type="range" id="modal-rating" min="1" max="10" step="1" value="7" />
+              <span id="modal-rating-value" class="rating-input__value">7</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="modal-status">Trạng thái</label>
+            <select id="modal-status" class="select select--full">
+              <option value="want">Muốn xem</option>
+              <option value="watching">Đang xem</option>
+              <option value="watched">Đã xem</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="modal-note">Ghi chú</label>
+            <textarea id="modal-note" class="textarea" rows="3" placeholder="Cảm nhận, lý do thích, muốn xem lại..."></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button type="button" class="btn btn--danger" id="modal-delete" hidden>Xóa khỏi danh sách</button>
+        <div class="modal__footer-right">
+          <button type="button" class="btn btn--ghost" id="modal-cancel">Hủy</button>
+          <button type="submit" class="btn btn--primary" id="modal-save">Lưu</button>
+        </div>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Settings modal -->
+  <dialog class="modal modal--sm" id="settings-modal">
+    <form class="modal__form" id="settings-form" method="dialog">
+      <div class="modal__header">
+        <h2 class="modal__title">Cài đặt</h2>
+        <button type="button" class="btn btn--ghost btn--icon modal__close" data-close-settings aria-label="Đóng">&times;</button>
+      </div>
+      <div class="modal__body modal__body--stack">
+        <div class="field">
+          <label for="api-key-input">TMDB API Key</label>
+          <input type="password" id="api-key-input" class="input" placeholder="Nhập API key..." autocomplete="off" />
+          <p class="field__hint">
+            Lấy key miễn phí tại
+            <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener noreferrer">themoviedb.org/settings/api</a>.
+            Key được lưu trong trình duyệt (localStorage).
+          </p>
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button type="submit" class="btn btn--primary">Lưu</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="js/config.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

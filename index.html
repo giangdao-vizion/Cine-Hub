@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Cine-Hub — Sổ phim cá nhân, tìm phim và đánh giá theo sở thích" />
   <title>Cine-Hub</title>
+  <link rel="icon" href="assets/icon/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icon/icon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/icon/icon-16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icon/apple-touch-icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -14,8 +18,21 @@
   <div class="app">
     <header class="header">
       <div class="brand">
-        <span class="brand__icon" aria-hidden="true">🎬</span>
-        <h1 class="brand__title">Cine-Hub</h1>
+        <picture class="brand__picture">
+          <source
+            type="image/webp"
+            srcset="assets/logo/logo-header.webp 1x, assets/logo/logo-header@2x.webp 2x"
+          />
+          <img
+            class="brand__logo"
+            src="assets/logo/logo-header.png"
+            srcset="assets/logo/logo-header.png 1x, assets/logo/logo-header@2x.png 2x"
+            width="84"
+            height="84"
+            alt="Cine Hub"
+            decoding="async"
+          />
+        </picture>
       </div>
       <nav class="tabs" role="tablist" aria-label="Điều hướng chính">
         <button type="button" class="tabs__btn tabs__btn--active" data-tab="search" role="tab" aria-selected="true" aria-controls="panel-search">Tìm phim</button>
@@ -106,9 +123,11 @@
         </div>
 
         <div id="list-empty" class="empty empty--hero" hidden>
-          <div class="empty__visual" aria-hidden="true">
-            <span class="empty__ring"></span>
-            <span class="empty__emoji">🎬</span>
+          <div class="empty__visual">
+            <picture>
+              <source type="image/webp" srcset="assets/logo/logo-medium.webp" />
+              <img class="empty__logo" src="assets/logo/logo-medium.png" width="240" height="240" alt="" decoding="async" />
+            </picture>
           </div>
           <p class="empty__title">Danh sách trống</p>
           <p class="empty__text">Tìm phim yêu thích, chấm điểm và lưu lại — xem offline mọi lúc.</p>

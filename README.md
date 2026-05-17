@@ -24,10 +24,31 @@ const CONFIG = {
 };
 ```
 
+## Logo & icon
+
+**`assets/logo/`** — logo đầy đủ (header, empty state):
+
+| File | Dùng cho |
+|------|----------|
+| `logo-header` / `@2x` | Header (PNG + WebP) |
+| `logo-medium` | Empty state |
+| `logo-full` | Kích thước lớn |
+
+**`assets/icon/`** — biểu tượng C + play (favicon, shortcut):
+
+| File | Dùng cho |
+|------|----------|
+| `favicon.ico` | Tab trình duyệt (16/32/48) |
+| `icon-16.png`, `icon-32.png` | Favicon PNG |
+| `apple-touch-icon.png` | iOS “Thêm vào Màn hình chính” (180×180) |
+| `icon-192.png`, `icon-512.png` | PWA / manifest (nếu thêm sau) |
+
 ## Cấu trúc
 
 ```
 Cine-Hub/
+├── assets/logo/
+├── assets/icon/
 ├── index.html
 ├── css/styles.css
 └── js/
